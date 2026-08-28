@@ -87,7 +87,7 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
   };
 
   useEffect(() => {
-    drawDailyCard();
+    // Wait for an explicit user click — do not auto-draw on page load
   }, [deckType]);
 
   const handleSave = () => {
@@ -158,7 +158,7 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
         {/* Deck Toggle */}
         <div className="flex p-1 rounded-xl bg-[#0D0D12] border border-slate-800/80">
           <button
-            onClick={() => setDeckType('tarot')}
+            onClick={() => { setDeckType('tarot'); setSelectedCard(null); setDailyData(null); setIsFlipped(false); setSaved(false); }}
             className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
               deckType === 'tarot'
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-md shadow-violet-500/20'
@@ -168,7 +168,7 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
             🔮 Колода Таро
           </button>
           <button
-            onClick={() => setDeckType('mac')}
+            onClick={() => { setDeckType('mac'); setSelectedCard(null); setDailyData(null); setIsFlipped(false); setSaved(false); }}
             className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
               deckType === 'mac'
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-md shadow-violet-500/20'
@@ -201,10 +201,16 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
           <div className="mt-6 flex flex-wrap justify-center gap-3 w-full">
             <button
               onClick={() => drawDailyCard(true)}
-              className="px-4 py-2 rounded-xl bg-[#15151F] hover:bg-[#1A1A24] text-slate-300 border border-slate-800/80 text-xs font-medium flex items-center gap-2 transition-all hover:border-violet-500/30"
+              className={`text-xs font-medium flex items-center gap-2 transition-all rounded-xl px-5 py-3 ${
+                !selectedCard
+                  ? 'bg-gradient-to-tr from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white shadow-lg shadow-violet-500/30 font-semibold animate-pulse'
+                  : 'bg-[#15151F] hover:bg-[#1A1A24] text-slate-300 border border-slate-800/80 hover:border-violet-500/30'
+              }`}
             >
               <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
-              Тянуть другую карту
+              {!selectedCard
+                ? '🔮 Тянуть карту дня'
+                : 'Тянуть другую карту'}
             </button>
 
             {dailyData && (
@@ -227,7 +233,16 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
 
         {/* Right Column: AI Interpretation & Insights */}
         <div className="lg:col-span-7 space-y-5">
-          {loading ? (
+          {!selectedCard ? (
+            <div className="p-8 rounded-2xl bg-[#0F0F16] border border-slate-800/60 text-center space-y-3">
+              <p className="text-lg sm:text-xl font-serif italic text-slate-200">
+                Сосредоточьтесь на своём вопросе...
+              </p>
+              <p className="text-xs text-slate-500 italic max-w-md mx-auto">
+                Когда будете готовы — нажмите «Тянуть карту дня». Луна вытянет карту специально для вас и расскажет, что она значит.
+              </p>
+            </div>
+          ) : loading ? (
             <div className="p-8 rounded-2xl bg-[#0F0F16] border border-slate-800/60 text-center space-y-4">
               <div className="w-10 h-10 rounded-full border-2 border-violet-400 border-t-transparent animate-spin mx-auto" />
               <p className="text-sm text-slate-200 tracking-wide font-medium">
