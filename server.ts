@@ -219,6 +219,59 @@ app.post("/api/tarot/daily-card", async (req, res) => {
   }
 });
 
+// 2.1 Ask the card a free-form question / explain its meaning
+app.post("/api/tarot/ask", async (req, res) => {
+  try {
+    const { deckType, card, isReversed, question, mode, userProfile, chat } = req.body;
+
+    if (!card) {
+      return res.status(400).json({ error: "No card provided" });
+    }
+
+    const cardName = 'nameRu' in card ? card.nameRu : card.title;
+    const cardMeta =
+      deckType === "tarot"
+        ? `Карта Таро "${cardName}" (${isReversed ? "перевернутая" : "прямая"}). Ключевые слова: ${(card.keywords || []).join(", ")}.`
+        : `МАК-карта "${card.title}" (Категория: ${card.category}). Метафора: ${card.metaphor}. Описание: ${card.description}`;
+
+    const historyText = (chat || [])
+      .map((m: any) => `${m.sender === "user" ? "Пользователь" : "Луна"}: ${m.text}`)
+      .join("\n");
+
+    const intent =
+      mode === "explain"
+        ? `Пользователь просит объяснить значение карты простыми, живыми словами — без терминов, как мудрая подруга-таролог объяснила бы другу. Коротко (3-5 предложений), тепло и по делу.`
+        : `Пользователь задаёт карте личный вопрос: "${question || "..."}". Ответь на него через призму symbolism этой карты: мягко, глубоко, с опорой на интуицию пользователя. 4-6 предложений. Заверши одним коротким вопросом для размышления.`;
+
+    const prompt = `
+Контекст: пользователь вытянул карту в приложении LUNA AI.
+${cardMeta}
+Пользователь: ${userProfile?.name || "Искатель"}${userProfile?.zodiacSign ? `, знак ${userProfile.zodiacSign}` : ""}.
+
+${historyText ? `Предыдущий разговор об этой карте:\n${historyText}\n` : ""}
+Задача: ${intent}
+
+Верни JSON: { "reply": "текст ответа" }
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: TAROLOGIST_SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        temperature: 0.8,
+      },
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    res.json({ success: true, reply: parsed.reply || "Карты хранят молчание — попробуйте спросить иначе." });
+  } catch (error: any) {
+    console.error("Ask card error:", error);
+    res.status(500).json({ error: error.message, reply: "🌙 Связь с картами на секунду прервалась. Попробуйте ещё раз." });
+  }
+});
+
 // 3. Metaphorical Card Self-Analysis Interactive Session
 app.post("/api/tarot/self-analysis", async (req, res) => {
   try {

@@ -5,6 +5,7 @@ import { TAROT_DECK } from '../data/tarotCards';
 import { MAC_DECK } from '../data/macCards';
 import { TarotCard, MacCard, UserProfile, ReadingResult } from '../types';
 import { Sparkles, RefreshCw, BookmarkPlus, Share2, Compass, AlertCircle, Quote, Check, ArrowRight } from 'lucide-react';
+import { CardChat } from './CardChat';
 
 interface DailyCardViewProps {
   userProfile: UserProfile;
@@ -306,6 +307,14 @@ export const DailyCardView: React.FC<DailyCardViewProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Chat with the card */}
+              <CardChat
+                deckType={deckType}
+                card={selectedCard}
+                isReversed={isReversed}
+                userProfile={userProfile}
+              />
 
               {/* Action Buttons */}
               <div className="pt-2 flex items-center justify-between">

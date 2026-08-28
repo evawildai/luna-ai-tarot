@@ -4,13 +4,12 @@ import { DailyCardView } from './components/DailyCardView';
 import { SpreadReadingView } from './components/SpreadReadingView';
 import { MacSelfAnalysisView } from './components/MacSelfAnalysisView';
 import { JournalView } from './components/JournalView';
-import { TelegramBotView } from './components/TelegramBotView';
 import { DestinyView } from './components/DestinyView';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ShareModal } from './components/ShareModal';
 import { 
   Sparkles, Sun, Layers, HeartHandshake, Bookmark, 
-  Bot, Compass, User, Shield
+  Compass, User, Shield
 } from 'lucide-react';
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -24,7 +23,7 @@ const DEFAULT_PROFILE: UserProfile = {
   },
 };
 
-type ActiveTab = 'spreads' | 'daily' | 'mac' | 'journal' | 'bot' | 'destiny';
+type ActiveTab = 'spreads' | 'daily' | 'mac' | 'journal' | 'destiny';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('spreads');
@@ -201,18 +200,6 @@ export default function App() {
                 </span>
               )}
             </button>
-
-            <button
-              onClick={() => setActiveTab('bot')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
-                activeTab === 'bot'
-                  ? 'bg-gradient-to-tr from-violet-600 to-indigo-500 text-white shadow-md shadow-violet-500/20'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Bot className="w-3.5 h-3.5" />
-              Telegram Бот
-            </button>
           </nav>
 
           {/* User Profile Button */}
@@ -280,14 +267,6 @@ export default function App() {
           >
             📖 Дневник ({journalEntries.length})
           </button>
-          <button
-            onClick={() => setActiveTab('bot')}
-            className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-              activeTab === 'bot' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 bg-[#15151F]'
-            }`}
-          >
-            🤖 Telegram Бот
-          </button>
         </div>
       </header>
 
@@ -333,10 +312,6 @@ export default function App() {
             onUpdateReflection={handleUpdateReflection}
             onShare={handleOpenShare}
           />
-        )}
-
-        {activeTab === 'bot' && (
-          <TelegramBotView userProfile={userProfile} />
         )}
       </main>
 
