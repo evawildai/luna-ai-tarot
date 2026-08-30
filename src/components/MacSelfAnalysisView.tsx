@@ -25,15 +25,9 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
   onShare,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
-  const [activeCard, setActiveCard] = useState<MacCard>(MAC_CARDS[0]);
+  const [activeCard, setActiveCard] = useState<MacCard | null>(null);
   const [userInput, setUserInput] = useState('');
-  const [dialogue, setDialogue] = useState<DialogueMessage[]>([
-    {
-      sender: 'ai',
-      text: `Приветствую, ${userProfile.name}. В работе с метафорическими картами нет правильных или неправильных ответов. Посмотрите на карту «${activeCard.title}».\n\nЧто первое привлекает ваш взгляд? Какие эмоции или воспоминания поднимаются?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [dialogue, setDialogue] = useState<DialogueMessage[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -46,23 +40,33 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
   const handleSelectCard = (card: MacCard) => {
     setActiveCard(card);
     setSaved(false);
+    setUserInput('');
     setDialogue([
       {
         sender: 'ai',
-        text: `Вы выбрали метафорическую карту «${card.title}» (${card.category}).\n\nОбратите внимание на образ: «${card.metaphor}».\n\n${card.guidingQuestions[0] || 'Что этот образ говорит о вашей текущей ситуации?'}`,
+        text: `Приветствую, ${userProfile.name}. Вы выбрали метафорическую карту «${card.title}» (${card.category}).\n\nОбратите внимание на образ: «${card.metaphor}».\n\nЧто первое привлекает ваш взгляд? Какие эмоции или воспоминания поднимаются?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
   };
 
   const handleDrawRandomCard = () => {
-    const random = filteredCards[Math.floor(Math.random() * filteredCards.length)];
+    const pool = selectedCategory === 'Все' ? MAC_CARDS : MAC_CARDS.filter(c => c.category === selectedCategory);
+    const random = pool[Math.floor(Math.random() * pool.length)];
+    handleSelectCard(random);
+  };
+
+  // Clicking a category pill immediately draws a random card from that category
+  const handleCategoryClick = (cat: string) => {
+    setSelectedCategory(cat);
+    const pool = cat === 'Все' ? MAC_CARDS : MAC_CARDS.filter(c => c.category === cat);
+    const random = pool[Math.floor(Math.random() * pool.length)];
     handleSelectCard(random);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userInput.trim() || loadingAI) return;
+    if (!userInput.trim() || loadingAI || !activeCard) return;
 
     const userText = userInput.trim();
     setUserInput('');
@@ -115,6 +119,7 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
   };
 
   const handleSaveSession = () => {
+    if (!activeCard) return;
     const journalEntry = {
       id: 'mac-' + Date.now(),
       createdAt: new Date().toISOString(),
@@ -171,10 +176,14 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleDrawRandomCard}
-            className="px-4 py-2 rounded-xl bg-[#15151F] hover:bg-[#1A1A24] text-slate-300 border border-slate-800/80 text-xs font-medium flex items-center gap-2 transition-all hover:border-violet-500/30"
+            className={`text-xs font-medium flex items-center gap-2 transition-all rounded-xl px-5 py-3 ${
+              !activeCard
+                ? 'bg-gradient-to-tr from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white shadow-lg shadow-violet-500/30 font-semibold animate-pulse'
+                : 'bg-[#15151F] hover:bg-[#1A1A24] text-slate-300 border border-slate-800/80 hover:border-violet-500/30'
+            }`}
           >
             <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
-            Случайная карта
+            {!activeCard ? '🔮 Тянуть карту' : 'Случайная карта'}
           </button>
         </div>
       </div>
@@ -184,7 +193,7 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
         {categories.map((cat) => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => handleCategoryClick(cat)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-gradient-to-tr from-violet-600 to-indigo-500 text-white shadow-md shadow-violet-500/20'
@@ -203,17 +212,32 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
           <div className="p-6 rounded-2xl bg-[#0F0F16] border border-slate-800/60 shadow-xl flex flex-col items-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent pointer-events-none" />
 
-            <CardVisual
-              card={activeCard}
-              deckType="mac"
-              isFlipped={true}
-              size="lg"
-              glow={true}
-              positionLabel={activeCard.category}
-            />
+            {activeCard ? (
+              <CardVisual
+                card={activeCard}
+                deckType="mac"
+                isFlipped={true}
+                size="lg"
+                glow={true}
+                positionLabel={activeCard.category}
+              />
+            ) : (
+              <div className="w-full py-10 text-center space-y-3">
+                <div className="w-24 h-36 mx-auto rounded-xl bg-[#15151F] border-2 border-dashed border-slate-700 flex items-center justify-center text-3xl">
+                  🃏
+                </div>
+                <p className="text-sm font-serif italic text-slate-200">
+                  Сосредоточьтесь на своём запросе...
+                </p>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                  Нажмите «Тянуть карту» — или выберите категорию выше, и Луна вытянет карту из неё.
+                </p>
+              </div>
+            )}
 
             {/* Card Metaphor & Guidance */}
-            <div className="w-full mt-6 space-y-3 pt-4 border-t border-slate-800/60">
+            {activeCard && (
+              <div className="w-full mt-6 space-y-3 pt-4 border-t border-slate-800/60">
               <div className="p-3.5 rounded-xl bg-[#15151F] border border-slate-800/60 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
@@ -252,7 +276,8 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
                   ))}
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Mini Cards Deck Carousel */}
@@ -266,7 +291,7 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
                   key={c.id}
                   onClick={() => handleSelectCard(c)}
                   className={`p-1.5 rounded-xl border shrink-0 transition-all ${
-                    activeCard.id === c.id
+                    activeCard?.id === c.id
                       ? 'border-violet-500 bg-[#15151F] shadow-md shadow-violet-500/20'
                       : 'border-slate-800 hover:border-slate-700 bg-[#15151F]/40 opacity-70 hover:opacity-100'
                   }`}
@@ -319,6 +344,16 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
 
               {/* Chat Thread */}
               <div className="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
+                {dialogue.length === 0 && !loadingAI && (
+                  <div className="py-10 text-center space-y-2">
+                    <p className="text-sm font-serif italic text-slate-300">
+                      Это безопасное пространство саморефлексии.
+                    </p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Вытяните карту слева — и начните диалог с подсознанием. Расскажите, что вы чувствуете, глядя на образ карты.
+                    </p>
+                  </div>
+                )}
                 {dialogue.map((msg, i) => (
                   <div
                     key={i}
@@ -357,12 +392,12 @@ export const MacSelfAnalysisView: React.FC<MacSelfAnalysisViewProps> = ({
                   type="text"
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
-                  placeholder="Опишите, что вы чувствуете, глядя на эту карту..."
+                  placeholder={activeCard ? 'Опишите, что вы чувствуете, глядя на эту карту...' : 'Сначала вытяните карту...'}
                   className="w-full pl-4 pr-12 py-3 rounded-full bg-[#1A1A24] border border-slate-800 text-slate-200 placeholder-slate-600 text-xs sm:text-sm focus:outline-none focus:border-violet-500/50 transition-all"
                 />
                 <button
                   type="submit"
-                  disabled={loadingAI || !userInput.trim()}
+                  disabled={loadingAI || !userInput.trim() || !activeCard}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 disabled:opacity-40 text-white transition-all shadow-md shadow-violet-500/20"
                 >
                   <Send className="w-4 h-4" />
